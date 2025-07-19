@@ -88,8 +88,6 @@ graph TD
 ### Ön Gereksinimler
 - Python 3.8 veya üzeri
 - Docker ve Docker Compose
-- 4GB RAM (Spark için önerilen)
-- 2GB disk alanı
 
 ### 1. Projeyi İndirin
 ```bash
@@ -298,21 +296,6 @@ curl http://localhost:5000/api/stats
 
 ---
 
-## 🤝 Katkıda Bulunma
-
-1. Bu repository'yi fork edin
-2. Feature branch oluşturun (`git checkout -b feature/yeni-ozellik`)
-3. Değişikliklerinizi commit edin (`git commit -am 'Yeni özellik eklendi'`)
-4. Branch'inizi push edin (`git push origin feature/yeni-ozellik`)
-5. Pull Request oluşturun
-
-### Geliştirme Kuralları
-- PEP 8 coding standards'ına uyun
-- Tüm fonksiyonlar için docstring yazın
-- Unit test coverage %80'in üzerinde olsun
-- Type hints kullanın
-
----
 
 ## 📋 TODO Listesi
 
@@ -345,25 +328,17 @@ Bu proje MIT lisansı altında lisanslanmıştır. Detaylar için [LICENSE](LICE
 
 ## 📞 İletişim
 
-**Geliştirici**: [GitHub Kullanıcı Adınız](https://github.com/your-username)  
-**E-posta**: your-email@domain.com  
-**Proje URL**: https://github.com/your-username/kandilli-deprem-dashboard
+**Geliştirici**: [cankumet](https://github.com/CanKumet)  
+**E-posta**: cankumetl@gmail.com  
+**Proje URL**: https://github.com/CanKumet/DepremAnalytics/
 
 ---
 
-## 📈 Proje İstatistikleri
-
-![GitHub stars](https://img.shields.io/github/stars/your-username/kandilli-deprem-dashboard?style=social)
-![GitHub forks](https://img.shields.io/github/forks/your-username/kandilli-deprem-dashboard?style=social)
-![GitHub issues](https://img.shields.io/github/issues/your-username/kandilli-deprem-dashboard)
-![GitHub last commit](https://img.shields.io/github/last-commit/your-username/kandilli-deprem-dashboard)
-
----
 
 <div align="center">
 
 **⭐ Bu projeyi beğendiyseniz star vermeyi unutmayın! ⭐**
 
-*Son güncelleme: 2024*
+*Son güncelleme: 2025*
 
 </div>
