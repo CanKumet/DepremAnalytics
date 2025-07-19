@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  zookeeper-deprem:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: zookeeper-deprem
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2281:2181"
+    networks:
+      - deprem-net
+
+  kafka-deprem:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: kafka-deprem
+    depends_on:
+      - zookeeper-deprem
+    ports:
+      - "9192:9092"
+    environment:
+      KAFKA_BROKER_ID: 2
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper-deprem:2181
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://host.docker.internal:9192
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    networks:
+      - deprem-net
+
+  kafka-ui-deprem:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui-deprem
+    depends_on:
+      - kafka-deprem
+    ports:
+      - "8180:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: deprem
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka-deprem:9092
+    networks:
+      - deprem-net
+
+networks:
+  deprem-net:
+    driver: bridge

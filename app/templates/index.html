@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kandilli Deprem Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.3.2/socket.io.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #09ffff 0%, #00ca26 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .status {
+            display: inline-block;
+            padding: 8px 16px;
+            background: #4CAF50;
+            color: white;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin-top: 10px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .map-container {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        #map {
+            height: 500px;
+            border-radius: 10px;
+        }
+
+        .recent-earthquakes {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .recent-earthquakes h3 {
+            color: #667eea;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 1.4rem;
+        }
+
+        .earthquake-list {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .earthquake-item {
+            padding: 15px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+            transition: all 0.3s ease;
+            animation: slideIn 0.5s ease;
+        }
+
+        .earthquake-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .earthquake-item.new-earthquake {
+            border-left-color: #FF6B6B;
+            background: linear-gradient(135deg, #FFE5E5 0%, #FFF0F0 100%);
+            animation: newEarthquake 2s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes newEarthquake {
+            0% { background: #FF6B6B; transform: scale(1.05); }
+            100% { background: linear-gradient(135deg, #FFE5E5 0%, #FFF0F0 100%); transform: scale(1); }
+        }
+
+        .earthquake-magnitude {
+            font-weight: bold;
+            font-size: 1.2rem;
+            color: #667eea;
+        }
+
+        .earthquake-magnitude.high {
+            color: #FF6B6B;
+        }
+
+        .earthquake-location {
+            color: #666;
+            margin: 5px 0;
+            font-size: 0.95rem;
+        }
+
+        .earthquake-time {
+            color: #999;
+            font-size: 0.85rem;
+        }
+
+        .alert-banner {
+            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E8E 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: bold;
+            animation: alertPulse 1s infinite;
+            display: none;
+        }
+
+        @keyframes alertPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+
+        .top-locations {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            grid-column: span 2;
+        }
+
+        .top-locations h3 {
+            color: #667eea;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .location-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .location-item:last-child {
+            border-bottom: none;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .header h1 {
+                font-size: 1.8rem;
+            }
+
+            .top-locations {
+                grid-column: span 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌍 Kandilli Deprem İzleme Dashboard</h1>
+            <div class="status" id="connection-status">🔴 Bağlanıyor...</div>
+        </div>
+
+        <div id="alert-banner" class="alert-banner">
+            <strong>⚠️ UYARI:</strong> <span id="alert-message"></span>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number" id="total-count">{{ stats.total_count }}</div>
+                <div class="stat-label">Toplam Deprem</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="max-magnitude">{{ stats.max_magnitude }}</div>
+                <div class="stat-label">En Büyük Büyüklük</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="avg-magnitude">{{ stats.avg_magnitude }}</div>
+                <div class="stat-label">Ortalama Büyüklük</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="today-count">{{ stats.today_count }}</div>
+                <div class="stat-label">Bugünkü Deprem</div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="map-container">
+                <h3>🗺️ Deprem Haritası</h3>
+                <div id="map"></div>
+            </div>
+
+            <div class="recent-earthquakes">
+                <h3>📊 Son Depremler</h3>
+                <div class="earthquake-list" id="earthquake-list">
+                    {% for earthquake in earthquakes %}
+                    <div class="earthquake-item">
+                        <div class="earthquake-magnitude {% if earthquake.buyukluk and earthquake.buyukluk >= 4.0 %}high{% endif %}">
+                            M{{ earthquake.buyukluk or 'N/A' }}
+                        </div>
+                        <div class="earthquake-location">{{ earthquake.yer }}</div>
+                        <div class="earthquake-time">{{ earthquake.tarih }} {{ earthquake.saat }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="top-locations">
+            <h3>📍 En Aktif Bölgeler</h3>
+            <div id="top-locations">
+                {% for location, count in stats.top_locations %}
+                <div class="location-item">
+                    <span>{{ location }}</span>
+                    <strong>{{ count }} deprem</strong>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Socket.IO bağlantısı
+        const socket = io();
+
+        // Harita
+        let map = L.map('map').setView([39.0, 35.0], 6);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Marker grubu
+        let markersGroup = L.layerGroup().addTo(map);
+
+        // Bağlantı durumu
+        socket.on('connect', function() {
+            document.getElementById('connection-status').innerHTML = '🟢 Bağlı - Canlı Veri Akışı';
+            document.getElementById('connection-status').style.background = '#4CAF50';
+        });
+
+        socket.on('disconnect', function() {
+            document.getElementById('connection-status').innerHTML = '🔴 Bağlantı Kesildi';
+            document.getElementById('connection-status').style.background = '#F44336';
+        });
+
+        // Yeni deprem geldiğinde
+        socket.on('yeni_deprem', function(data) {
+            console.log('Yeni deprem:', data);
+
+            // Listeye ekle
+            addToEarthquakeList(data);
+
+            // Haritaya ekle
+            addToMap(data);
+
+            // Büyük deprem uyarısı
+            if (data.buyukluk && data.buyukluk >= 4.0) {
+                showAlert(`Büyük deprem tespit edildi! M${data.buyukluk} - ${data.yer}`);
+            }
+
+            // İstatistikleri güncelle
+            updateStats();
+        });
+
+        function addToEarthquakeList(data) {
+            const list = document.getElementById('earthquake-list');
+            const item = document.createElement('div');
+            item.className = 'earthquake-item new-earthquake';
+
+            const magnitude = data.buyukluk || 'N/A';
+            const magnitudeClass = (data.buyukluk && data.buyukluk >= 4.0) ? 'high' : '';
+
+            item.innerHTML = `
+                <div class="earthquake-magnitude ${magnitudeClass}">M${magnitude}</div>
+                <div class="earthquake-location">${data.yer}</div>
+                <div class="earthquake-time">${data.tarih} ${data.saat}</div>
+            `;
+
+            // En üste ekle
+            list.insertBefore(item, list.firstChild);
+
+            // Fazla öğeleri kaldır (maksimum 50)
+            while (list.children.length > 50) {
+                list.removeChild(list.lastChild);
+            }
+
+            // New-earthquake class'ını 3 saniye sonra kaldır
+            setTimeout(() => {
+                item.classList.remove('new-earthquake');
+            }, 3000);
+        }
+
+        function addToMap(data) {
+            if (data.enlem && data.boylam) {
+                const magnitude = data.buyukluk || 0;
+                const color = magnitude >= 4.0 ? 'red' : magnitude >= 3.0 ? 'orange' : 'blue';
+                const size = Math.max(5, magnitude * 2);
+
+                const marker = L.circleMarker([data.enlem, data.boylam], {
+                    color: color,
+                    fillColor: color,
+                    fillOpacity: 0.7,
+                    radius: size
+                }).bindPopup(`
+                    <strong>M${magnitude}</strong><br>
+                    ${data.yer}<br>
+                    ${data.tarih} ${data.saat}<br>
+                    Derinlik: ${data.derinlik_km || 'N/A'} km
+                `);
+
+                markersGroup.addLayer(marker);
+
+                // Fazla marker'ları kaldır (performans için)
+                const layers = markersGroup.getLayers();
+                if (layers.length > 100) {
+                    markersGroup.removeLayer(layers[0]);
+                }
+            }
+        }
+
+        function showAlert(message) {
+            const alertBanner = document.getElementById('alert-banner');
+            const alertMessage = document.getElementById('alert-message');
+
+            alertMessage.textContent = message;
+            alertBanner.style.display = 'block';
+
+            // 10 saniye sonra gizle
+            setTimeout(() => {
+                alertBanner.style.display = 'none';
+            }, 10000);
+        }
+
+        function updateStats() {
+            fetch('/api/stats')
+                .then(response => response.json())
+                .then(stats => {
+                    document.getElementById('total-count').textContent = stats.total_count;
+                    document.getElementById('max-magnitude').textContent = stats.max_magnitude;
+                    document.getElementById('avg-magnitude').textContent = stats.avg_magnitude;
+                    document.getElementById('today-count').textContent = stats.today_count;
+                })
+                .catch(error => console.error('İstatistik güncellenirken hata:', error));
+        }
+
+        // Sayfa yüklendiğinde mevcut depremleri haritaya ekle
+        window.onload = function() {
+            {% for earthquake in earthquakes %}
+            {% if earthquake.enlem and earthquake.boylam %}
+            addToMap({
+                enlem: {{ earthquake.enlem }},
+                boylam: {{ earthquake.boylam }},
+                buyukluk: {{ earthquake.buyukluk or 0 }},
+                yer: "{{ earthquake.yer }}",
+                tarih: "{{ earthquake.tarih }}",
+                saat: "{{ earthquake.saat }}",
+                derinlik_km: {{ earthquake.derinlik_km or 0 }}
+            });
+            {% endif %}
+            {% endfor %}
+        };
+
+        // Her 30 saniyede istatistikleri güncelle
+        setInterval(updateStats, 30000);
+    </script>
+</body>
+</html>
